@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Osakapitali suurendamine - {{ company.name }}{% endblock %}
+
+{% block content %}
+<div class="increase-capital-form">
+    <h1>Osakapitali suurendamine</h1>
+    <h2>{{ company.name }}</h2>
+    
+    <div class="capital-summary">
+        <p>Praegune osakapital: <strong>{{ company.share_capital }} EUR</strong></p>
+        <p id="new-total">Uus osakapital: <strong>{{ company.share_capital }} EUR</strong></p>
+    </div>
+
+    <div class="current-shareholders">
+        <h3>Praegused osanikud</h3>
+        <table class="shareholders-table">
+            <thead>
+                <tr>
+                    <th>Osanik</th>
+                    <th>Osa suurus (EUR)</th>
+                    <th>Asutaja</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for shareholder in company.shareholders %}
+                <tr>
+                    <td>
+                        {% if shareholder.person.type == 'natural' %}
+                            {{ shareholder.person.first_name }} {{ shareholder.person.last_name }}
+                        {% else %}
+                            {{ shareholder.person.company_name }}
+                        {% endif %}
+                        ({{ shareholder.person.identification_code }})
+                    </td>
+                    <td class="text-right">{{ shareholder.share_size }}</td>
+                    <td class="text-center">{{ "Jah" if shareholder.is_founder else "Ei" }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr>
+                    <td><strong>Kokku:</strong></td>
+                    <td class="text-right"><strong>{{ company.share_capital }}</strong></td>
+                    <td></td>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <form method="post" class="form" id="increaseCapitalForm">
+        <div id="shareholders-changes">
+            <h3>Osanike osade muutmine</h3>
+            
+            <div class="shareholders-container">
+                {% for shareholder in company.shareholders %}
+                <div class="shareholder-entry existing-shareholder">
+                    <select name="shareholder" required>
+                        <option value="">Vali osanik...</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}" 
+                                    {% if person.id == shareholder.person.id %}selected{% endif %}>
+                                {% if person.type == 'natural' %}
+                                    {{ person.first_name }} {{ person.last_name }} ({{ person.identification_code }})
+                                {% else %}
+                                    {{ person.company_name }} ({{ person.identification_code }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" 
+                           name="share_size" 
+                           required 
+                           value="0"
+                           class="share-input"
+                           data-current-share="{{ shareholder.share_size }}"
+                           placeholder="Osa muutus (EUR)">
+                    <div class="share-summary">
+                        Praegune: <span class="current-share">{{ shareholder.share_size }}</span> EUR<br>
+                        Uus: <span class="new-share">{{ shareholder.share_size }}</span> EUR
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <div class="shareholder-entry new-shareholder">
+                    <select name="shareholder" required>
+                        <option value="">Vali osanik...</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}">
+                                {% if person.type == 'natural' %}
+                                    {{ person.first_name }} {{ person.last_name }} ({{ person.identification_code }})
+                                {% else %}
+                                    {{ person.company_name }} ({{ person.identification_code }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" 
+                           name="share_size" 
+                           required 
+                           value="0"
+                           class="share-input"
+                           data-current-share="0"
+                           placeholder="Osa suurus (EUR)">
+                    <div class="share-summary">
+                        Praegune: <span class="current-share">0</span> EUR<br>
+                        Uus: <span class="new-share">0</span> EUR
+                    </div>
+                    <button type="button" class="btn btn-danger btn-small remove-shareholder">
+                        Eemalda
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-info">
+            <ul>
+                <li>Olemasolevate osanike puhul sisesta osa <strong>muutus</strong> (suurendamiseks positiivne, vähendamiseks negatiivne number)</li>
+                <li>Uue osaniku puhul sisesta kogu osa suurus</li>
+                <li>Muutuse tühistamiseks sisesta 0</li>
+            </ul>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn" onclick="addShareholderEntry()">
+                Lisa uus osanik
+            </button>
+            <button type="submit" class="btn btn-primary">Salvesta muudatused</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function addShareholderEntry() {
+    const container = document.querySelector('.shareholders-container');
+    const template = container.querySelector('.new-shareholder').cloneNode(true);
+    template.querySelector('select').value = '';
+    template.querySelector('input').value = '0';
+    container.appendChild(template);
+    updateTotal();
+}
+
+function updateShareSummary(input) {
+    const currentShare = parseInt(input.dataset.currentShare) || 0;
+    const changeAmount = parseInt(input.value) || 0;
+    const summaryDiv = input.closest('.shareholder-entry').querySelector('.share-summary');
+    const newShareSpan = summaryDiv.querySelector('.new-share');
+    
+    const newShare = currentShare + changeAmount;
+    newShareSpan.textContent = newShare.toLocaleString();
+    
+    if (newShare < 0) {
+        newShareSpan.classList.add('error');
+    } else {
+        newShareSpan.classList.remove('error');
+    }
+}
+
+function updateTotal() {
+    const currentCapital = parseInt('{{ company.share_capital }}');
+    const changes = Array.from(document.getElementsByName('share_size'))
+        .map(input => parseInt(input.value) || 0)
+        .reduce((a, b) => a + b, 0);
+    
+    const totalElement = document.getElementById('new-total');
+    if (totalElement) {
+        const newTotal = currentCapital + changes;
+        totalElement.innerHTML = `Uus osakapital: <strong>${newTotal.toLocaleString()} EUR</strong>`;
+        
+        if (newTotal < currentCapital) {
+            totalElement.classList.add('error');
+        } else {
+            totalElement.classList.remove('error');
+        }
+    }
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-shareholder') && !e.target.disabled) {
+        const entry = e.target.closest('.shareholder-entry');
+        if (!entry.classList.contains('existing-shareholder') || 
+            confirm('Kas olete kindel, et soovite selle osaniku eemaldada?')) {
+            entry.remove();
+            updateTotal();
+        }
+    }
+});
+
+document.addEventListener('input', function(e) {
+    if (e.target.classList.contains('share-input')) {
+        updateShareSummary(e.target);
+        updateTotal();
+    }
+});
+
+document.getElementById('increaseCapitalForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const shareInputs = document.getElementsByClassName('share-input');
+    let hasInvalidShares = false;
+    
+    for (const input of shareInputs) {
+        const currentShare = parseInt(input.dataset.currentShare) || 0;
+        const changeAmount = parseInt(input.value) || 0;
+        if (currentShare + changeAmount < 0) {
+            hasInvalidShares = true;
+            break;
+        }
+    }
+    
+    if (hasInvalidShares) {
+        alert('Osaniku osa ei saa olla negatiivne!');
+        return;
+    }
+    
+    const changes = Array.from(shareInputs)
+        .map(input => parseInt(input.value) || 0);
+    
+    if (changes.every(change => change === 0)) {
+        alert('Vähemalt ühe osaniku osa peab muutuma!');
+        return;
+    }
+
+    const hasNegativeChanges = changes.some(change => change < 0);
+    if (hasNegativeChanges && !confirm('Mõne osaniku osa vähendatakse. Kas olete kindel?')) {
+        return;
+    }
+    
+    this.submit();
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    const shareInputs = document.getElementsByClassName('share-input');
+    for (const input of shareInputs) {
+        updateShareSummary(input);
+    }
+    updateTotal();
+});
+</script>
+{% endblock %}

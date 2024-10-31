@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Avaleht - Osaühingute Register{% endblock %}
+
+{% block content %}
+<div class="search-section">
+    <h1>Osaühingute otsing</h1>
+    
+    <form action="{{ url_for('search') }}" method="get" class="search-form">
+        <div class="form-group">
+            <label for="query">Otsingusõna:</label>
+            <input type="text" 
+                   id="query" 
+                   name="query" 
+                   placeholder="Sisesta nimi või registrikood..." 
+                   required>
+        </div>
+
+        <div class="form-group">
+            <label for="search-type">Otsingu tüüp:</label>
+            <select id="search-type" name="type">
+                <option value="company">Osaühing</option>
+                <option value="person">Osanik</option>
+            </select>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Otsi</button>
+    </form>
+
+    <div class="actions">
+        <a href="{{ url_for('new_company') }}" class="btn btn-success">
+            Asuta uus osaühing
+        </a>
+    </div>
+</div>
+{% endblock %}

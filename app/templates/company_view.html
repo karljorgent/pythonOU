@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+
+{% block title %}{{ company.name }} - Osaühingute Register{% endblock %}
+
+{% block content %}
+<div class="company-details">
+    <h1>{{ company.name }}</h1>
+    
+    <div class="info-grid">
+        <div class="info-item">
+            <label>Registrikood:</label>
+            <span>{{ company.registry_code }}</span>
+        </div>
+        <div class="info-item">
+            <label>Asutamiskuupäev:</label>
+            <span>{{ company.founding_date.strftime('%d.%m.%Y') }}</span>
+        </div>
+        <div class="info-item">
+            <label>Kogukapital:</label>
+            <span>{{ company.share_capital }} EUR</span>
+        </div>
+    </div>
+
+    <h2>Osanikud</h2>
+    <table class="shareholders-table">
+        <thead>
+            <tr>
+                <th>Nimi</th>
+                <th>Isiku-/Registrikood</th>
+                <th>Osa suurus (EUR)</th>
+                <th>Asutaja</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for shareholder in company.shareholders %}
+            <tr>
+                <td>
+                    {% if shareholder.person.type == 'natural' %}
+                        {{ shareholder.person.first_name }} {{ shareholder.person.last_name }}
+                    {% else %}
+                        {{ shareholder.person.company_name }}
+                    {% endif %}
+                </td>
+                <td>{{ shareholder.person.identification_code }}</td>
+                <td class="text-right">{{ shareholder.share_size }}</td>
+                <td class="text-center">{{ "Jah" if shareholder.is_founder else "Ei" }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+        <tfoot>
+            <tr>
+                <td colspan="2"><strong>Kokku:</strong></td>
+                <td class="text-right"><strong>{{ company.share_capital }}</strong></td>
+                <td></td>
+            </tr>
+        </tfoot>
+    </table>
+
+    <div class="actions">
+        <a href="{{ url_for('increase_capital', id=company.id) }}" class="btn btn-primary">
+            Suurenda osakapitali
+        </a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,125 @@
+{% extends "base.html" %}
+
+{% block title %}Uue osaühingu asutamine - Osaühingute Register{% endblock %}
+
+{% block content %}
+<div class="company-form">
+    <h1>Uue osaühingu asutamine</h1>
+    
+    <form method="post" class="form" id="companyForm">
+        <div class="form-group">
+            <label for="name">Nimi:</label>
+            <input type="text" 
+                   id="name" 
+                   name="name" 
+                   required 
+                   minlength="3" 
+                   maxlength="100" 
+                   pattern="[A-Za-z0-9\s]+" 
+                   title="3 kuni 100 tähte või numbrit">
+        </div>
+
+        <div class="form-group">
+            <label for="registry_code">Registrikood:</label>
+            <input type="text" 
+                   id="registry_code" 
+                   name="registry_code" 
+                   required 
+                   pattern="[0-9]{7}" 
+                   title="7 numbrit">
+        </div>
+
+        <div class="form-group">
+            <label for="founding_date">Asutamiskuupäev:</label>
+            <input type="date" 
+                   id="founding_date" 
+                   name="founding_date" 
+                   required 
+                   max="{{ today }}">
+        </div>
+
+        <div class="form-group">
+            <label for="share_capital">Kogukapital (EUR):</label>
+            <input type="number" 
+                   id="share_capital" 
+                   name="share_capital" 
+                   required 
+                   min="2500">
+        </div>
+
+        <div id="shareholders">
+            <h2>Osanikud</h2>
+            <div class="shareholders-container">
+                <div class="shareholder-entry">
+                    <select name="shareholder" required>
+                        <option value="">Vali osanik...</option>
+                        {% for person in persons %}
+                            <option value="{{ person.id }}">
+                                {% if person.type == 'natural' %}
+                                    {{ person.first_name }} {{ person.last_name }} ({{ person.identification_code }})
+                                {% else %}
+                                    {{ person.company_name }} ({{ person.identification_code }})
+                                {% endif %}
+                            </option>
+                        {% endfor %}
+                    </select>
+                    <input type="number" 
+                           name="share_size" 
+                           required 
+                           min="1" 
+                           placeholder="Osa suurus (EUR)">
+                    <button type="button" class="btn btn-danger btn-small remove-shareholder">
+                        Eemalda
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="btn" onclick="addShareholderEntry()">
+                Lisa osanik
+            </button>
+            <button type="submit" class="btn btn-primary">Salvesta</button>
+        </div>
+    </form>
+</div>
+
+<script>
+function addShareholderEntry() {
+    const container = document.querySelector('.shareholders-container');
+    const template = container.querySelector('.shareholder-entry').cloneNode(true);
+    
+    const entriesCount = container.querySelectorAll('.shareholder-entry').length;
+    template.querySelector('select').name = 'shareholder';
+    template.querySelector('input').name = 'share_size';
+    
+    template.querySelector('select').value = '';
+    template.querySelector('input').value = '';
+    container.appendChild(template);
+}
+
+document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('remove-shareholder')) {
+        const entries = document.querySelectorAll('.shareholder-entry');
+        if (entries.length > 1) {
+            e.target.closest('.shareholder-entry').remove();
+        }
+    }
+});
+
+document.getElementById('companyForm').addEventListener('submit', function(e) {
+    e.preventDefault();
+    
+    const shareCapital = parseInt(document.getElementById('share_capital').value);
+    const shares = Array.from(document.getElementsByName('share_size')).map(input => parseInt(input.value));
+    const totalShares = shares.reduce((a, b) => a + b, 0);
+    
+    if (totalShares !== shareCapital) {
+        alert('Osanike osade summa peab võrduma osakapitaliga!');
+        return;
+    }
+    
+    this.submit();
+});
+</script>
+{% endblock %}
